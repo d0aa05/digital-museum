@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المتحف الرقمي</title>
+    <style>
+        :root {
+            --primary-color: #8B5A2B;
+            --bg-color: #f4f1ea;
+            --text-color: #333;
+            --card-bg: #fff;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
+        header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--primary-color); padding-bottom: 15px; }
+        h1 { color: var(--primary-color); margin: 0; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.3s; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 250px; object-fit: cover; }
+        .card h3 { padding: 15px; margin: 0; text-align: center; color: var(--primary-color); font-size: 1.1rem; }
+        
+        /* النافذة المنبثقة */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: var(--card-bg); border-radius: 10px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px; position: relative; }
+        .close-btn { position: absolute; top: 10px; left: 10px; background: red; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 18px; }
+        #modal-img { width: 100%; max-height: 400px; object-fit: contain; background: #000; border-radius: 5px; }
+        
+        /* تنسيقات الوسائط */
+        .media-section { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc; }
+        .media-title { color: var(--primary-color); margin-top: 0; margin-bottom: 10px; font-size: 1.2rem; }
+        video, audio { width: 100%; border-radius: 5px; }
+        #modal-title { color: var(--primary-color); margin-top: 20px; }
+        #modal-desc { line-height: 1.6; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+    <header><h1 id="main-title">المتحف الرقمي</h1></header>
+    <div class="gallery" id="gallery"></div>
+
+    <div class="modal-overlay" id="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closeModal()">X</button>
+            <img id="modal-img" src="" alt="">
+            
+            <!-- قسم الفيديو -->
+            <div id="video-section" class="media-section">
+                <h3 id="video-title" class="media-title"></h3>
+                <video id="modal-video" controls></video>
+            </div>
+
+            <!-- قسم الصوت -->
+            <div id="audio-section" class="media-section">
+                <h3 id="audio-title" class="media-title"></h3>
+                <audio id="modal-audio" controls></audio>
+            </div>
+
+            <h2 id="modal-title"></h2>
+            <p id="modal-desc"></p>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚠️ هنا المكان الوحيد اللي هتعدلي فيه ⚠️
+        // ==========================================
+        const artifactsData = [
+            {
+                id: 1,
+                // انسخي اسم الصورة بالظبط من المستودع والصقيها هنا بين علامات التنصيص
+                image: "", 
+                // انسخي اسم الفيديو هنا (لو مفيش فيديو سيبيها "")
+                video: "VID-20250813-WA0002-aud...mp3", 
+                // انسخي اسم ملف الصوت هنا (لو مفيش صوت سيبيها "")
+                audio: "ElevenLabs_2026_09_30T17...mp3", 
+                titleAr: "لوح خشبي منقوش",
+                titleEn: "Carved Wooden Panel",
+                descAr: "اكتبي هنا وصف القطعة الأثرية بالعربي...",
+                descEn: "Write the artifact description in English here..."
+            },
+            // عشان تضيفي قطعة تانية، انسخي الجزء ده كله من { لـ }, وحطيه تحت وغيري البيانات
+            // {
+            //     id: 2,
+            //     image: "اسم_الصورة_التانية.jpg",
+            //     video: "",
+            //     audio: "",
+            //     titleAr: "عنوان القطعة التانية",
+            //     titleEn: "Second Artifact Title",
+            //     descAr: "وصف القطعة التانية...",
+            //     descEn: "Second artifact description..."
+            // },
+        ];
+
+        let currentLang = 'ar';
+
+        function renderGallery() {
+            const container = document.getElementById('gallery');
+            container.innerHTML = '';
+            artifactsData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => openModal(item);
+                const title = currentLang === 'ar' ? item.titleAr : item.titleEn;
+                card.innerHTML = `<img src="${item.image}" alt="${title}"><h3>${title}</h3>`;
+                container.appendChild(card);
+            });
+        }
+
+        function openModal(item) {
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('modal-img').src = item.image;
+            document.getElementById('modal-title').textContent = currentLang === 'ar' ? item.titleAr : item.titleEn;
+            document.getElementById('modal-desc').textContent = currentLang === 'ar' ? item.descAr : item.descEn;
+            
+            const vSec = document.getElementById('video-section');
+            const aSec = document.getElementById('audio-section');
+            const vTitle = document.getElementById('video-title');
+            const aTitle = document.getElementById('audio-title');
+            
+            // التحكم في الفيديو
+            if (item.video && item.video !== "") {
+                document.getElementById('modal-video').src = item.video;
+                vTitle.textContent = currentLang === 'ar' ? "🎬 فيلم وثائقي قصير" : "🎬 Short Documentary";
+                vSec.style.display = 'block';
+            } else { vSec.style.display = 'none'; }
+            
+            // التحكم في الصوت
+            if (item.audio && item.audio !== "") {
+                document.getElementById('modal-audio').src = item.audio;
+                aTitle.textContent = currentLang === 'ar' ? "🎧 الرواية الصوتية" : "🎧 Audio Narrative";
+                aSec.style.display = 'block';
+            } else { aSec.style.display = 'none'; }
+        }
+
+        function closeModal(event) {
+            if (!event || event.target.id === 'modal' || event.target.className === 'close-btn') {
+                document.getElementById('modal').style.display = 'none';
+                document.getElementById('modal-video').pause();
+                document.getElementById('modal-audio').pause();
+            }
+        }
+
+        window.onload = renderGallery;
+    </script>
+</body>
+</html>
